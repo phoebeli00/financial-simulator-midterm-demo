@@ -242,6 +242,12 @@
 .quick-result { padding: 22px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
 .quick-result-topline { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .quick-result .answer-heading { margin: 12px 0 0; font-size: clamp(28px, 3vw, 38px); line-height: 1.25; }
+.quick-answer-detail { margin: 12px 0 0; max-width: 860px; color: var(--ink); font-size: 18px; line-height: 1.55; }
+.quick-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin: 24px 0 0; }
+.quick-metrics div { display: flex; flex-direction: column; gap: 4px; }
+.quick-metrics dt { color: var(--text-soft); font-size: 14px; }
+.quick-metrics dd { margin: 0; color: var(--ink); font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.quick-assumptions-note { margin: 22px 0 0; color: var(--text-soft); font-size: 14px; line-height: 1.5; }
 .quick-refreshing { color: var(--text-soft); font-size: 13px; }
 .quick-variable-panel { padding: 20px; border: 1px solid var(--border); border-radius: 16px; background: var(--primary-tint); }
 .quick-variable-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
@@ -264,6 +270,9 @@
 .quick-supporting > summary { color: var(--text-soft); }
 @media(max-width:736px) {
   .quick-result, .quick-variable-panel { padding: 16px; }
+  .quick-metrics { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .quick-metrics div { flex-direction: row; align-items: baseline; justify-content: space-between; }
+  .quick-metrics dd { font-size: 22px; }
   .quick-variable-heading { flex-direction: column; gap: 4px; }
   .quick-variable .parameter-field { grid-template-columns: minmax(0, 1fr) 110px; }
   .quick-variable .parameter-field label { grid-column: 1 / -1; }
