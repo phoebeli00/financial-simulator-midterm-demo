@@ -247,6 +247,16 @@
 .quick-metrics div { display: flex; flex-direction: column; gap: 4px; }
 .quick-metrics dt { color: var(--text-soft); font-size: 14px; }
 .quick-metrics dd { margin: 0; color: var(--ink); font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.funds-visual { margin-top: 20px; }
+.funds-bar { display: flex; width: 100%; height: 18px; overflow: hidden; border-radius: 999px; background: var(--background); }
+.funds-bar span { display: block; height: 100%; transition: width 180ms ease; }
+.funds-goal { background: var(--primary); }
+.funds-remaining { background: var(--success-text); opacity: .72; }
+.funds-legend { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 8px; color: var(--text-soft); font-size: 14px; }
+.funds-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.funds-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 999px; }
+.funds-goal-key { background: var(--primary); }
+.funds-remaining-key { background: var(--success-text); opacity: .72; }
 .quick-assumptions-note { margin: 22px 0 0; color: var(--text-soft); font-size: 14px; line-height: 1.5; }
 .quick-refreshing { color: var(--text-soft); font-size: 13px; }
 .quick-variable-panel { padding: 20px; border: 1px solid var(--border); border-radius: 16px; background: var(--primary-tint); }
@@ -256,7 +266,9 @@
 .quick-variable-list { display: grid; gap: 12px; }
 .quick-variable { padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
 .quick-variable .parameter-field { grid-template-columns: minmax(150px, 1fr) minmax(180px, 2fr) 130px; align-items: center; gap: 14px; margin: 0; }
-.quick-variable .parameter-field label { color: var(--ink); font-weight: 500; }
+.quick-variable .parameter-field label { display: flex; align-items: center; gap: 8px; color: var(--ink); font-weight: 500; }
+.quick-value-source { padding: 2px 7px; border-radius: 999px; background: var(--primary-tint); color: var(--primary-readable); font-size: 11px; font-weight: 500; }
+.quick-value-source.is-calculated { background: var(--assumed-background); color: var(--assumed-text); }
 .quick-variable .parameter-field input[type=range] { grid-column: 2; grid-row: 1; margin: 0; max-width: none; }
 .quick-variable .parameter-field input[type=number] { grid-column: 3; grid-row: 1; width: 100%; max-width: none; padding: 8px 10px; }
 .quick-variable .parameter-field small { grid-column: 1 / -1; }
@@ -273,6 +285,7 @@
   .quick-metrics { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .quick-metrics div { flex-direction: row; align-items: baseline; justify-content: space-between; }
   .quick-metrics dd { font-size: 22px; }
+  .funds-legend { align-items: flex-start; flex-direction: column; gap: 6px; }
   .quick-variable-heading { flex-direction: column; gap: 4px; }
   .quick-variable .parameter-field { grid-template-columns: minmax(0, 1fr) 110px; }
   .quick-variable .parameter-field label { grid-column: 1 / -1; }
