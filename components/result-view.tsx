@@ -56,15 +56,25 @@ export function ResultView({ response, app, onChange, onDraft, onRevert, onStep,
   const template = success ? response.answer : retained && (retained.status === 'ready' || retained.status === 'conditional') ? retained.answer : null;
   const templateFields = success ? canonicalParameters(response) : retained ? canonicalParameters(retained) : [];
   const controls = canonicalParameters(response);
+  const quickFields = (() => {
+    const seen = new Set<string>();
+    const scenarioIds = new Set(templateFields.map(field => field.id));
+    return [...templateFields, ...response.information, ...response.questions].filter(field => {
+      const key = JSON.stringify(field.binding);
+      if (seen.has(key) || !scenarioIds.has(field.id) && !['number', 'range'].includes(field.control.type)) return false;
+      seen.add(key);
+      return true;
+    });
+  })();
   const baseSections = app.mode === 'quick' ? quickSections(response) : [1, 2, 3, 4];
   const sections = activeInline && !baseSections.includes(4) ? [4, ...baseSections] : baseSections;
   const content: Record<number, ReactNode> = {
     1: <>{response.information.length ? <InformationGroups response={response} app={app} onChange={onChange} onDraft={onDraft} onRevert={onRevert} onConfirm={onConfirm} /> : <p className="muted">No information returned yet.</p>}<p className="muted information-hint">Confirmation is optional.</p>{app.extraction && <details className="additional-context"><summary>More context</summary><p>{app.extraction.goal_summary}</p><p>{app.extraction.confidence_note}</p></details>}</>,
     2: <>{!response.questions.length && <p className="muted">No questions need answering here.</p>}{response.status === 'needs_input' && response.message && <p role="status">{response.message}</p>}{response.questions.map(q => <div className="question" key={q.id}><FieldControl field={q} app={app} onChange={onChange} />{q.extractionQuestionIndices?.some(i => app.extraction?.clarification_questions[i]?.question !== q.label) && <details><summary>Original extraction questions</summary>{q.extractionQuestionIndices.map(i => <p key={i}>{app.extraction?.clarification_questions[i]?.question}</p>)}</details>}<small className="annotation">{q.required ? 'Required' : 'Optional clarification'}</small></div>)}</>,
     3: <div className="formula-list">{(!success || !response.explanations.length) && <p className="muted">Calculations will appear when a supported result is available.</p>}{success && response.explanations.map((step, i) => <div key={i}><strong>{step.label}</strong><p>{step.text}</p></div>)}</div>,
-    4: <div className="dynamic-answer" data-result-status={response.status}><span className="answer-status">{({ ready: 'Ready', conditional: 'Conditional estimate', needs_input: 'More information needed', unsupported: 'Calculation unavailable', stale: refreshing ? 'Updating' : 'Needs recalculation' })[response.status]}</span>{template && (success || activeInline) && <InlineAnswer answer={template} fields={templateFields} app={app} onChange={onChange} current={success} onFocus={setActiveInline} onBlur={() => setActiveInline(null)} />}{!success && <p role="status">{response.message}</p>}
+    4: <div className={`dynamic-answer${app.mode === 'quick' ? ' quick-calculator' : ''}`} data-result-status={response.status}><div className={app.mode === 'quick' ? 'quick-result' : undefined}><div className={app.mode === 'quick' ? 'quick-result-topline' : undefined}><span className="answer-status">{({ ready: 'Ready', conditional: 'Conditional estimate', needs_input: 'More information needed', unsupported: 'Calculation unavailable', stale: refreshing ? 'Updating' : 'Needs recalculation' })[response.status]}</span>{app.mode === 'quick' && refreshing && <span className="quick-refreshing">Recalculating…</span>}</div>{template && (success || activeInline) && <InlineAnswer answer={template} fields={templateFields} app={app} onChange={onChange} current={success} onFocus={setActiveInline} onBlur={() => setActiveInline(null)} />}{!success && <p role="status">{response.message}</p>}</div>
       {success && response.assumptions.length > 0 && <ReviewReminder assumptions={response.assumptions} onReview={id => document.getElementById(`parameter-${id}`)?.querySelector<HTMLElement>('input, select')?.focus()} />}
-    {(success || stale && refreshing) && controls.length > 0 && <ScenarioControls fields={controls} app={app} onChange={onChange} />}
+    {(success || stale && refreshing) && (app.mode === 'quick' ? quickFields.length > 0 && <QuickScenarioControls fields={quickFields} app={app} onChange={onChange} refreshing={refreshing} hasScenarioParameters={controls.length > 0} /> : controls.length > 0 && <ScenarioControls fields={controls} app={app} onChange={onChange} />)}
             {(success || response.status === 'unsupported') && (response.metrics.length > 0 || success && !!response.answer.detail) && <details className="answer-limitations"><summary>Supporting details</summary><dl className="scenario-summary">{response.metrics.map((m, i) => <div key={i}><dt>{m.label}</dt><dd>{m.value}</dd></div>)}</dl>{success && response.answer.detail && <p>{response.answer.detail}</p>}</details>}
       {success && response.limitations.length > 0 && <details className="answer-limitations"><summary>Limitations</summary><ul>{response.limitations.map((s, i) => <li key={i}>{s}</li>)}</ul></details>}
     {response.nextActions.map((a, i) => <button key={i} onClick={() => onAction(a.action)}>{a.label}</button>)}{stale && refreshing && <span className="sr-only" role="status">Updating calculation</span>}</div>,
@@ -95,6 +105,24 @@ export function ReviewReminder({ assumptions: all, onReview }: { assumptions: Ca
   if (!actionable.length) return <>{notice}<details className="answer-limitations"><summary>Assumptions ({assumptions.length})</summary>{assumptions.map(a => <p key={a.id}>{a.text}</p>)}</details></>;
   const primary = actionable[0];
   return <>{notice}<aside className="review-reminder"><div><span className="review-dot" aria-hidden="true">!</span><strong>One thing to confirm</strong></div><p>{primary.text} <button onClick={() => onReview(primary.parameter!.id)}>Edit</button></p>{assumptions.length > 1 && <details><summary>More assumptions ({assumptions.length - 1})</summary>{assumptions.filter(a => a.id !== primary.id).map(a => <p key={a.id}>{a.text}{a.parameter && <button onClick={() => onReview(a.parameter!.id)}>{a.reviewLabel ?? 'Review'}</button>}</p>)}</details>}</aside></>;
+}
+
+function QuickVariable({ field, app, onChange }: { field: EditableField; app: ApplicationState; onChange: ChangeValue }) {
+  const id = useId();
+  if (!['number', 'range'].includes(field.control.type)) return <div className="quick-variable" id={`parameter-${field.id}`}><FieldControl field={field} app={app} onChange={onChange} /></div>;
+  const value = boundValue(app, field.binding, field.value);
+  const numericValue = Number.isFinite(Number(value)) ? Number(value) : 0;
+  const min = field.control.min ?? 0;
+  const max = field.control.max ?? Math.max(min + 1, numericValue * 2, field.unit === 'months' ? 24 : 1000);
+  const step = field.control.step ?? (field.unit === 'months' ? 1 : 0.01);
+  const update = (next: string) => onChange(field.binding, next.trim() && Number.isFinite(Number(next)) ? Number(next) : next);
+  return <div className="quick-variable" id={`parameter-${field.id}`}><div className="parameter-field"><label htmlFor={`${id}-number`}>{field.label}{field.unit && field.unit !== '$' ? ` (${field.unit})` : ''}</label><input id={`${id}-range`} aria-label={`${field.label} slider`} type="range" min={min} max={max} step={step} value={numericValue} onChange={event => update(event.target.value)} /><input id={`${id}-number`} aria-label={`${field.label} exact value`} type="number" min={min} max={max} step={step} value={value ?? ''} onChange={event => update(event.target.value)} />{field.help && <small>{field.help}</small>}</div></div>;
+}
+
+function QuickScenarioControls({ fields, app, onChange, refreshing, hasScenarioParameters }: { fields: EditableField[]; app: ApplicationState; onChange: ChangeValue; refreshing: boolean; hasScenarioParameters: boolean }) {
+  const primary = fields.slice(0, 3);
+  const additional = fields.slice(3);
+  return <section className="quick-variable-panel" aria-label="Adjust calculation variables"><div className="quick-variable-heading"><h3>{hasScenarioParameters ? 'Explore What If' : 'Adjust the numbers'}</h3><p>{refreshing ? 'Recalculating…' : 'Results update instantly'}</p></div><div className="quick-variable-list">{primary.map(field => <QuickVariable key={field.id} field={field} app={app} onChange={onChange} />)}</div>{additional.length > 0 && <details className="quick-more"><summary>Adjust More Variables</summary><div className="quick-variable-list">{additional.map(field => <QuickVariable key={field.id} field={field} app={app} onChange={onChange} />)}</div></details>}</section>;
 }
 
 export function ScenarioControls({ fields, app, onChange }: { fields: EditableField[]; app: ApplicationState; onChange: ChangeValue }) {

@@ -237,6 +237,44 @@
 .dynamic-workspace .review-reminder { background: var(--warning-background); border-color: color-mix(in srgb, var(--warning-text) 30%, var(--warning-background)); }
 @media(max-width:736px) { .scenario-control-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; } }
 
+/* Quick Calculate keeps the outcome first and the most useful levers close at hand. */
+.quick-calculator { display: flex; flex-direction: column; gap: 18px; }
+.quick-result { padding: 22px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+.quick-result-topline { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.quick-result .answer-heading { margin: 12px 0 0; font-size: clamp(28px, 3vw, 38px); line-height: 1.25; }
+.quick-refreshing { color: var(--text-soft); font-size: 13px; }
+.quick-variable-panel { padding: 20px; border: 1px solid var(--border); border-radius: 16px; background: var(--primary-tint); }
+.quick-variable-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.quick-variable-heading h3 { font-size: 20px; }
+.quick-variable-heading p { margin: 0; color: var(--text-soft); font-size: 14px; }
+.quick-variable-list { display: grid; gap: 12px; }
+.quick-variable { padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.quick-variable .parameter-field { grid-template-columns: minmax(150px, 1fr) minmax(180px, 2fr) 130px; align-items: center; gap: 14px; margin: 0; }
+.quick-variable .parameter-field label { color: var(--ink); font-weight: 500; }
+.quick-variable .parameter-field input[type=range] { grid-column: 2; grid-row: 1; margin: 0; max-width: none; }
+.quick-variable .parameter-field input[type=number] { grid-column: 3; grid-row: 1; width: 100%; max-width: none; padding: 8px 10px; }
+.quick-variable .parameter-field small { grid-column: 1 / -1; }
+.quick-more { margin-top: 14px; }
+.quick-more > summary { display: flex; align-items: center; gap: 8px; color: var(--primary-readable); font-weight: 500; list-style: none; }
+.quick-more > summary::-webkit-details-marker { display: none; }
+.quick-more > summary::after { content: '+'; font-size: 20px; line-height: 1; }
+.quick-more[open] > summary::after { content: '−'; }
+.quick-more .quick-variable-list { margin-top: 12px; }
+.quick-supporting { padding-top: 4px; }
+.quick-supporting > summary { color: var(--text-soft); }
+@media(max-width:736px) {
+  .quick-result, .quick-variable-panel { padding: 16px; }
+  .quick-variable-heading { flex-direction: column; gap: 4px; }
+  .quick-variable .parameter-field { grid-template-columns: minmax(0, 1fr) 110px; }
+  .quick-variable .parameter-field label { grid-column: 1 / -1; }
+  .quick-variable .parameter-field input[type=range] { grid-column: 1; grid-row: 2; }
+  .quick-variable .parameter-field input[type=number] { grid-column: 2; grid-row: 2; }
+}
+@media(max-width:440px) {
+  .quick-variable .parameter-field { grid-template-columns: minmax(0, 1fr); }
+  .quick-variable .parameter-field input[type=range], .quick-variable .parameter-field input[type=number] { grid-column: 1; grid-row: auto; }
+}
+
 /* Shift emphasis from information review toward the questions awaiting action. */
 .dynamic-workspace #step-1 { background: var(--background); }
 .dynamic-workspace #step-1 .step-heading { padding-top: 12px; padding-bottom: 12px; }
