@@ -170,7 +170,10 @@ const c=load(require('node:path').resolve('lib/calculator.ts'));
  assert.equal(newQuestion.mode,'guide','A new question resets the mode to Guide');
  assert.equal(model.workspaceReducer({...quick,mode:'quick'},{type:'load',question:'Correction',extraction:raw,preserveMode:true}).mode,'quick','A correction keeps the selected mode');
  assert.equal(model.money(350),'$350');assert.equal(model.money(350.25),'$350.25');
- const detailsHtml=render(result);assert.ok(detailsHtml.includes('<summary>Supporting details</summary>'));
+ const detailsHtml=render(result);assert.doesNotMatch(detailsHtml,/<summary>(Supporting details|Limitations)<\/summary>/,'Quick mode avoids duplicate details');
+ assert.ok(detailsHtml.includes('Questions for you'),'Quick mode keeps Questions for you behind the answer');
+ assert.ok(detailsHtml.includes('step="1"'),'Quick sliders and exact inputs use whole numbers');
+ const guideDetailsHtml=render(result,{...model.initialApplicationState(),mode:'guide'});assert.ok(guideDetailsHtml.includes('<summary>Supporting details</summary>'));
  assert.doesNotMatch(result.answer.headline,/3,000|8 months/,'Quick answer omits repeated goal and deadline');
 
  const collaborative={...model.initialApplicationState(),extraction:raw};

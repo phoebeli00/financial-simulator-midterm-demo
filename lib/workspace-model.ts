@@ -66,7 +66,7 @@ export function boundValue(state: ApplicationState, binding: ValueBinding, fallb
 // Presentation order depends only on result availability, never a topic or fixture.
 export function quickSections(result: CalculationResponse): number[] {
   const success = result.status === 'ready' || result.status === 'conditional';
-  return success ? [4, ...(result.information.length ? [1] : []), ...(result.questions.length ? [2] : []), ...(result.explanations.length ? [3] : [])]
+  return success ? [4, ...(result.information.length ? [1] : []), 2, ...(result.explanations.length ? [3] : [])]
     : result.status === 'needs_input' ? [2, ...(result.information.length ? [1] : [])]
     : result.status === 'stale' && result.questions.some(q => q.required) ? [2, 4, ...(result.information.length ? [1] : [])] : [4, ...(result.information.length ? [1] : []), ...(result.questions.length ? [2] : [])];
 }
