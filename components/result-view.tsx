@@ -115,12 +115,13 @@ export function ReviewReminder({ assumptions: all, onReview }: { assumptions: Ca
 
 function QuickVariable({ field, app, onChange }: { field: EditableField; app: ApplicationState; onChange: ChangeValue }) {
   const id = useId();
-  if (!['number', 'range'].includes(field.control.type)) return <div className="quick-variable" id={`parameter-${field.id}`}><FieldControl field={field} app={app} onChange={onChange} /></div>;
   const value = boundValue(app, field.binding, field.value);
   const numericValue = Number.isFinite(Number(value)) ? Number(value) : 0;
   const min = field.control.min ?? 0;
-  const max = field.control.max ?? Math.max(min + 1, numericValue * 2, field.unit === 'months' ? 24 : 1000);
+  const [initialMax] = useState(() => field.control.max ?? Math.max(min + 1, numericValue * 2, field.unit === 'months' ? 24 : 1000));
+  const max = Math.max(initialMax, numericValue);
   const step = field.control.step ?? (field.unit === 'months' ? 1 : 0.01);
+  if (!['number', 'range'].includes(field.control.type)) return <div className="quick-variable" id={`parameter-${field.id}`}><FieldControl field={field} app={app} onChange={onChange} /></div>;
   const update = (next: string) => onChange(field.binding, next.trim() && Number.isFinite(Number(next)) ? Number(next) : next);
   return <div className="quick-variable" id={`parameter-${field.id}`}><div className="parameter-field"><label htmlFor={`${id}-number`}>{field.label}{field.unit && field.unit !== '$' ? ` (${field.unit})` : ''}</label><input id={`${id}-range`} aria-label={`${field.label} slider`} type="range" min={min} max={max} step={step} value={numericValue} onChange={event => update(event.target.value)} /><input id={`${id}-number`} aria-label={`${field.label} exact value`} type="number" min={min} max={max} step={step} value={value ?? ''} onChange={event => update(event.target.value)} />{field.help && <small>{field.help}</small>}</div></div>;
 }
