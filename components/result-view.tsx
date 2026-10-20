@@ -74,7 +74,7 @@ export function ResultView({ response, app, onChange, onDraft, onRevert, onStep,
     3: <div className="formula-list">{(!success || !response.explanations.length) && <p className="muted">Calculations will appear when a supported result is available.</p>}{success && response.explanations.map((step, i) => <div key={i}><strong>{step.label}</strong><p>{step.text}</p></div>)}</div>,
     4: <div className={`dynamic-answer${app.mode === 'quick' ? ' quick-calculator' : ''}`} data-result-status={response.status}><div className={app.mode === 'quick' ? 'quick-result' : undefined}><div className={app.mode === 'quick' ? 'quick-result-topline' : undefined}><span className="answer-status">{({ ready: 'Ready', conditional: 'Conditional estimate', needs_input: 'More information needed', unsupported: 'Calculation unavailable', stale: refreshing ? 'Updating' : 'Needs recalculation' })[response.status]}</span>{app.mode === 'quick' && refreshing && <span className="quick-refreshing">Recalculating…</span>}</div>{template && (success || activeInline) && <InlineAnswer answer={template} fields={templateFields} app={app} onChange={onChange} current={success} onFocus={setActiveInline} onBlur={() => setActiveInline(null)} />}{app.mode === 'quick' && success && template?.detail && <p className="quick-answer-detail">{template.detail}</p>}{app.mode === 'quick' && success && response.metrics.some(metric => metric.label === 'Available') && <QuickMetrics metrics={response.metrics} />}{!success && <p role="status">{response.message}</p>}{app.mode === 'quick' && success && <p className="quick-assumptions-note">Assumes the values shown stay constant. No interest, emergency reserve, or unlisted costs are included.</p>}</div>
       {app.mode !== 'quick' && success && response.assumptions.length > 0 && <ReviewReminder assumptions={response.assumptions} onReview={id => document.getElementById(`parameter-${id}`)?.querySelector<HTMLElement>('input, select')?.focus()} />}
-    {(success || stale && refreshing) && (app.mode === 'quick' ? quickFields.length > 0 && <QuickScenarioControls fields={quickFields} app={app} onChange={onChange} refreshing={refreshing} hasScenarioParameters={controls.length > 0} /> : controls.length > 0 && <ScenarioControls fields={controls} app={app} onChange={onChange} />)}
+    {(success || stale && refreshing) && (app.mode === 'quick' ? quickFields.length > 0 && <QuickScenarioControls fields={quickFields} metrics={response.metrics} app={app} onChange={onChange} refreshing={refreshing} hasScenarioParameters={controls.length > 0} /> : controls.length > 0 && <ScenarioControls fields={controls} app={app} onChange={onChange} />)}
             {(success || response.status === 'unsupported') && (response.metrics.length > 0 || success && !!response.answer.detail) && <details className="answer-limitations"><summary>Supporting details</summary><dl className="scenario-summary">{response.metrics.map((m, i) => <div key={i}><dt>{m.label}</dt><dd>{m.value}</dd></div>)}</dl>{success && response.answer.detail && <p>{response.answer.detail}</p>}</details>}
       {success && response.limitations.length > 0 && <details className="answer-limitations"><summary>Limitations</summary><ul>{response.limitations.map((s, i) => <li key={i}>{s}</li>)}</ul></details>}
     {response.nextActions.map((a, i) => <button key={i} onClick={() => onAction(a.action)}>{a.label}</button>)}{stale && refreshing && <span className="sr-only" role="status">Updating calculation</span>}</div>,
@@ -125,10 +125,36 @@ function QuickVariable({ field, app, onChange }: { field: EditableField; app: Ap
   return <div className="quick-variable" id={`parameter-${field.id}`}><div className="parameter-field"><label htmlFor={`${id}-number`}>{field.label}{field.unit && field.unit !== '$' ? ` (${field.unit})` : ''}</label><input id={`${id}-range`} aria-label={`${field.label} slider`} type="range" min={min} max={max} step={step} value={numericValue} onChange={event => update(event.target.value)} /><input id={`${id}-number`} aria-label={`${field.label} exact value`} type="number" min={min} max={max} step={step} value={value ?? ''} onChange={event => update(event.target.value)} />{field.help && <small>{field.help}</small>}</div></div>;
 }
 
-function QuickScenarioControls({ fields, app, onChange, refreshing, hasScenarioParameters }: { fields: EditableField[]; app: ApplicationState; onChange: ChangeValue; refreshing: boolean; hasScenarioParameters: boolean }) {
-  const primary = fields.slice(0, 3);
-  const additional = fields.slice(3);
-  return <section className="quick-variable-panel" aria-label="Adjust calculation variables"><div className="quick-variable-heading"><h3>{hasScenarioParameters ? 'Explore What If' : 'Adjust the numbers'}</h3><p>{refreshing ? 'Recalculating…' : 'Results update instantly'}</p></div><div className="quick-variable-list">{primary.map(field => <QuickVariable key={field.id} field={field} app={app} onChange={onChange} />)}</div>{additional.length > 0 && <details className="quick-more"><summary>Adjust More Variables</summary><div className="quick-variable-list">{additional.map(field => <QuickVariable key={field.id} field={field} app={app} onChange={onChange} />)}</div></details>}</section>;
+function QuickFundsSummary({ metrics }: { metrics: CalculationResponse['metrics'] }) {
+  const pick = (label: string) => metrics.find(metric => metric.label === label);
+  const projected = pick('Available');
+  const cost = pick('Trip cost');
+  const remaining = pick('Remaining');
+  if (!projected || !cost || !remaining) return null;
+  const number = (value: string) => Number(value.replace(/[^0-9.-]/g, ''));
+  const projectedValue = Math.max(0, number(projected.value));
+  const costValue = Math.max(0, number(cost.value));
+  const remainingValue = number(remaining.value);
+  const total = Math.max(projectedValue, costValue, 1);
+  const costWidth = Math.min(100, costValue / total * 100);
+  const remainingWidth = Math.max(0, Math.min(100 - costWidth, remainingValue / total * 100));
+  return <div className="quick-funds-summary"><dl className="quick-funds-metrics"><div><dt>Projected funds</dt><dd>{projected.value}</dd></div><div><dt>Trip cost</dt><dd>{cost.value}</dd></div><div><dt>Remaining balance</dt><dd>{remaining.value}</dd></div></dl><div className="quick-funds-bar" role="img" aria-label={`${cost.value} trip cost and ${remaining.value} remaining from ${projected.value} projected funds`}><span className="quick-funds-cost" style={{ width: `${costWidth}%` }} /><span className="quick-funds-remaining" style={{ width: `${remainingWidth}%` }} /></div><div className="quick-funds-legend"><span><i className="quick-funds-cost-key" />Trip cost {cost.value}</span><span><i className="quick-funds-remaining-key" />Remaining {remaining.value}</span></div></div>;
+}
+
+function QuickScenarioControls({ fields, metrics, app, onChange, refreshing, hasScenarioParameters }: { fields: EditableField[]; metrics: CalculationResponse['metrics']; app: ApplicationState; onChange: ChangeValue; refreshing: boolean; hasScenarioParameters: boolean }) {
+  const priorities = ['goal_amount', 'monthly_income', 'monthly_expenses'];
+  const rank = (field: EditableField) => {
+    const variable = field.binding.kind === 'fact' ? app.extraction?.assumptions[field.binding.index]?.variable : undefined;
+    const index = priorities.indexOf(variable ?? field.id);
+    return index < 0 ? priorities.length : index;
+  };
+  const ordered = [...fields].sort((a, b) => rank(a) - rank(b)).map(field => {
+    const variable = field.binding.kind === 'fact' ? app.extraction?.assumptions[field.binding.index]?.variable : undefined;
+    return variable === 'goal_amount' ? { ...field, label: 'Trip budget' } : field;
+  });
+  const primary = ordered.slice(0, 3);
+  const additional = ordered.slice(3);
+  return <section className="quick-variable-panel" aria-label="Adjust calculation variables"><div className="quick-variable-heading"><h3>{hasScenarioParameters ? 'Explore What If' : 'Adjust the numbers'}</h3><p>{refreshing ? 'Recalculating…' : 'Results update instantly'}</p></div><QuickFundsSummary metrics={metrics} /><div className="quick-variable-list">{primary.map(field => <QuickVariable key={field.id} field={field} app={app} onChange={onChange} />)}</div>{additional.length > 0 && <details className="quick-more"><summary>Adjust More Variables</summary><div className="quick-variable-list">{additional.map(field => <QuickVariable key={field.id} field={field} app={app} onChange={onChange} />)}</div></details>}</section>;
 }
 
 export function ScenarioControls({ fields, app, onChange }: { fields: EditableField[]; app: ApplicationState; onChange: ChangeValue }) {
